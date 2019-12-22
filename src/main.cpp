@@ -26,6 +26,7 @@ string g_ir_path;
 string g_cfg_path;
 string g_device_type;
 string g_input;
+bool   g_compressed;
 
 // ostream &operator<<(ostream &out, const vector<size_t> &c)
 // {
@@ -84,6 +85,7 @@ private:
 
     void polling_routine();
     void image_callback(const sensor_msgs::ImageConstPtr& msg);
+    void image_compressed_callback(const sensor_msgs::CompressedImageConstPtr& msg);
 };
 
 RosTopicFramesSource::RosTopicFramesSource(ros::NodeHandle &nh, string &topic_name) :
@@ -91,7 +93,12 @@ RosTopicFramesSource::RosTopicFramesSource(ros::NodeHandle &nh, string &topic_na
 {
     ROS_INFO_STREAM("Subscribing to " << topic_name);
 
-    sub_ = it_.subscribe(topic_name, 1, &RosTopicFramesSource::image_callback, this);
+    image_transport::TransportHints hints("compressed");
+
+    if ( g_compressed )
+        sub_ = it_.subscribe(topic_name, 1, &RosTopicFramesSource::image_callback, this, hints);
+    else
+        sub_ = it_.subscribe(topic_name, 1, &RosTopicFramesSource::image_callback, this);
 
     polling_thread_ = thread(&RosTopicFramesSource::polling_routine, this);
 }
@@ -119,6 +126,23 @@ void RosTopicFramesSource::image_callback(const sensor_msgs::ImageConstPtr& msg)
     }
 }
 
+void RosTopicFramesSource::image_compressed_callback(const sensor_msgs::CompressedImageConstPtr& msg)
+{
+    unique_lock<mutex> lock(frame_mutex_);
+
+    try
+    {
+        frame_ = cv::imdecode(cv::Mat(msg->data),1);
+
+        is_empty_ = false;
+        frame_condvar_.notify_all();
+    }
+    catch (cv_bridge::Exception& e)
+    {
+        ROS_ERROR("Could not convert to image!");
+    }
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "yolo_detector");
@@ -129,6 +153,7 @@ int main(int argc, char **argv)
     pr_nh.getParam("ir_path", g_ir_path);
     pr_nh.getParam("device", g_device_type);
     pr_nh.getParam("input", g_input);
+    pr_nh.getParam("compressed", g_compressed);
 
     shared_ptr<FramesSource> source;
 

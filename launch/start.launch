@@ -4,11 +4,13 @@
     <arg name="ir_path" default="$(find mad_detector)/models/MbN2_416x416_t1_FP16.xml" />
     <arg name="device" default="CPU" />
     <arg name="input" default="$(find mad_detector)/test.jpg" />
+    <arg name="compressed" default="false" />
 
     <node pkg="mad_detector" type="app" name="detector" output="screen" respawn="false">
         <param name="config_path" value="$(arg config_path)" />
         <param name="ir_path" value="$(arg ir_path)" />
         <param name="device" value="$(arg device)" />
         <param name="input" value="$(arg input)" />
+        <param name="compressed" value="$(arg compressed)" />
     </node>
 </launch>

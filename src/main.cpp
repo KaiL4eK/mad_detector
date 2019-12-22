@@ -147,6 +147,8 @@ int main(int argc, char **argv)
     YOLO_OpenVINO yolo(g_cfg_path);
     yolo.init(g_ir_path, g_device_type);
 
+    vector<string> labels = yolo.get_labels();
+
     while ( ros::ok() )
     {
         cv::Mat input_image = source->get_frame();
@@ -160,7 +162,10 @@ int main(int argc, char **argv)
         {
             cv::rectangle(input_image, det.rect, cv::Scalar(250, 0, 0), 2);
 
-            cout << "Detection: " << det.cls_idx << endl;
+            cv::putText(input_image, labels.at(det.cls_idx), det.rect.tl(),
+                cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50,50,100), 1, CV_AA);
+
+            // cout << "Detection: " << labels.at(det.cls_idx) << endl;
         }
 
         cv::Mat resized;

@@ -12,23 +12,23 @@ namespace pt = boost::property_tree;
 using namespace std;
 
 
-double IntersectionOverUnion(const RawDetectionObject &box_1, 
+double IntersectionOverUnion(const RawDetectionObject &box_1,
                              const RawDetectionObject &box_2)
 {
-    double width_of_overlap_area = fmin(box_1.x+box_1.w, 
-                                        box_2.x+box_2.w) - 
-                                   fmax(box_1.x, 
+    double width_of_overlap_area = fmin(box_1.x+box_1.w,
+                                        box_2.x+box_2.w) -
+                                   fmax(box_1.x,
                                         box_2.x);
-    double height_of_overlap_area = fmin(box_1.y+box_1.h, 
-                                         box_2.y+box_2.h) - 
-                                    fmax(box_1.y, 
+    double height_of_overlap_area = fmin(box_1.y+box_1.h,
+                                         box_2.y+box_2.h) -
+                                    fmax(box_1.y,
                                          box_2.y);
     double area_of_overlap;
     if (width_of_overlap_area < 0 || height_of_overlap_area < 0)
         area_of_overlap = 0;
     else
         area_of_overlap = width_of_overlap_area * height_of_overlap_area;
-    
+
     double box_1_area = box_1.h * box_1.w;
     double box_2_area = box_2.h * box_2.w;
     double area_of_union = box_1_area + box_2_area - area_of_overlap;
@@ -53,6 +53,14 @@ YOLOConfig::YOLOConfig(string cfg_path)
     cv::Point anchors_pair(-1, -1);
 
     _output_cnt = model_root.get_child("downsample").size();
+
+    for (pt::ptree::value_type &v : model_root.get_child("labels"))
+    {
+        string label = v.second.get_value<string>();
+        cout << label << endl;
+
+        labels_.push_back(label);
+    }
 
     for (pt::ptree::value_type &v : model_root.get_child("anchors"))
     {
@@ -113,7 +121,7 @@ std::vector<cv::Point> CommonYOLO::get_anchors(size_t layer_idx)
     size_t anchors_per_output = mCfg._anchors.size() / mCfg._output_cnt;
     size_t start_idx = anchors_per_output * (mCfg._output_cnt - layer_idx - 1);
     size_t end_idx = anchors_per_output * (mCfg._output_cnt - layer_idx);
-    
+
     cout << start_idx << " / " << end_idx << endl;
 
     for ( size_t i = start_idx; i < end_idx; i++ )
@@ -124,7 +132,13 @@ std::vector<cv::Point> CommonYOLO::get_anchors(size_t layer_idx)
     return anchors;
 }
 
-void CommonYOLO::initResizeConfig(cv::Mat in_img, 
+std::vector<std::string> CommonYOLO::get_labels()
+{
+    vector<string> labels = mCfg.labels_;
+    return labels;
+}
+
+void CommonYOLO::initResizeConfig(cv::Mat in_img,
                                   ImageResizeConfig &cfg)
 {
     uint32_t new_w, new_h;
@@ -173,7 +187,7 @@ void CommonYOLO::initResizeConfig(cv::Mat in_img,
     );
 }
 
-void CommonYOLO::resizeForNetwork(cv::Mat in_img, 
+void CommonYOLO::resizeForNetwork(cv::Mat in_img,
                                   cv::Mat &out_img,
                                   ImageResizeConfig &cfg)
 {
@@ -181,9 +195,9 @@ void CommonYOLO::resizeForNetwork(cv::Mat in_img,
 
     cv::resize(tile_img, tile_img, cfg.new_sz);
 
-    cv::copyMakeBorder(tile_img, out_img, 
-                    cfg.top, cfg.bottom, cfg.left, cfg.right, 
-                    cv::BORDER_CONSTANT, 
+    cv::copyMakeBorder(tile_img, out_img,
+                    cfg.top, cfg.bottom, cfg.left, cfg.right,
+                    cv::BORDER_CONSTANT,
                     cv::Scalar(127, 127, 127));
 }
 
@@ -193,13 +207,13 @@ void CommonYOLO::postprocessBoxes(std::vector<RawDetectionObject> &raw_boxes,
     /* For correction */
     for ( RawDetectionObject &det : raw_boxes )
     {
-        // cout << "[" 
-        //         << det.box_y-det.box_h/2 << ":" 
-        //         << det.box_y+det.box_h/2 << ", " 
-        //         << det.box_x-det.box_w/2 << ":" 
-        //         << det.box_x+det.box_w/2 
-        //         << "] " 
-        //         << det.conf << endl; 
+        // cout << "["
+        //         << det.box_y-det.box_h/2 << ":"
+        //         << det.box_y+det.box_h/2 << ", "
+        //         << det.box_x-det.box_w/2 << ":"
+        //         << det.box_x+det.box_w/2
+        //         << "] "
+        //         << det.conf << endl;
 
         if ( det.corrected )
             continue;
@@ -245,7 +259,7 @@ void CommonYOLO::filterBoxes(std::vector<RawDetectionObject> &raw_boxes,
         DetectionObject px_det;
         px_det.conf = det.conf;
         px_det.cls_idx = det.cls_idx;
-        
+
         px_det.rect = cv::Rect(
             cv::Point( det.x, det.y ),
             cv::Point( det.xm, det.ym )
@@ -288,7 +302,7 @@ void CommonYOLO::get_detections(vector<RawDetectionObject> &dets, void *data, si
 
     if ( fmt == ParsingFormat::HWC )
     {
-        h_stride = grid_w * chnl_count;        
+        h_stride = grid_w * chnl_count;
         w_stride = chnl_count;
         c_stride = 1;
     }
@@ -331,7 +345,7 @@ void CommonYOLO::get_detections(vector<RawDetectionObject> &dets, void *data, si
                 det.y = detection[grid_offset + c_stride * (1 + chnl_offset)];
                 det.w = detection[grid_offset + c_stride * (2 + chnl_offset)];
                 det.h = detection[grid_offset + c_stride * (3 + chnl_offset)];
-                
+
                 det.w = anchors[anc_idx].x * exp(det.w) / mCfg._infer_sz.width;
                 det.h = anchors[anc_idx].y * exp(det.h) / mCfg._infer_sz.height;
                 det.x = (sigmoid(det.x) + w_idx) / grid_w;
@@ -344,7 +358,7 @@ void CommonYOLO::get_detections(vector<RawDetectionObject> &dets, void *data, si
 
                     if ( det.conf < obj_thresh )
                         continue;
-                    
+
                     det.cls_idx = i_cls;
                     dets.push_back(det);
                 }

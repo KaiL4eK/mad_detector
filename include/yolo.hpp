@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string>
 
 #include <opencv2/core.hpp>
 
@@ -10,6 +11,8 @@ struct YOLOConfig
     YOLOConfig(std::string cfg_path);
 
     std::vector<cv::Point>  _anchors;
+    std::vector<std::string> labels_;
+
     size_t                  _tile_cnt;
     size_t                  _output_cnt;
 
@@ -60,7 +63,7 @@ struct DetectionObject
     size_t cls_idx;
 };
 
-double IntersectionOverUnion(const RawDetectionObject &box_1, 
+double IntersectionOverUnion(const RawDetectionObject &box_1,
                              const RawDetectionObject &box_2);
 
 struct ImageResizeConfig
@@ -69,7 +72,7 @@ struct ImageResizeConfig
              bottom,
              left,
              right;
-    
+
     cv::Size new_sz;
     cv::Size old_sz;
 
@@ -89,6 +92,7 @@ public:
     size_t get_infer_count() { return mCfg._tile_cnt; }
 
     std::vector<cv::Point> get_anchors(size_t layer_idx);
+    std::vector<std::string> get_labels();
 
     virtual void infer(cv::Mat raw_image, std::vector<DetectionObject> &detections) = 0;
 
@@ -99,11 +103,11 @@ public:
     };
 
 protected:
-    void initResizeConfig(cv::Mat in_img, 
+    void initResizeConfig(cv::Mat in_img,
                           ImageResizeConfig &cfg);
 
-    void resizeForNetwork(cv::Mat in_img, 
-                          cv::Mat &out_img, 
+    void resizeForNetwork(cv::Mat in_img,
+                          cv::Mat &out_img,
                           ImageResizeConfig &cfg);
 
     /*
@@ -119,7 +123,7 @@ protected:
 
     void get_detections(std::vector<RawDetectionObject> &dets, void *data, size_t grid_h, size_t grid_w, size_t chnls, std::vector<cv::Point> &anchors, ParsingFormat fmt);
 
-    YOLOConfig  mCfg;
+    YOLOConfig                  mCfg;
 
     size_t                      mBatchSize;
     std::string                 mInputName;

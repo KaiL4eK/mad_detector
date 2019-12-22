@@ -2,7 +2,7 @@
 <launch>
     <arg name="filepath" />
 
-    <node pkg="rosbag" type="play" name="player" output="screen" args="--clock --loop $(arg filepath)" />
+    <node pkg="rosbag" type="play" name="player" args="--clock --loop $(arg filepath)" />
 
     <include file="$(find mad_detector)/launch/start.launch" >
         <arg name="device" value="Myriad" />

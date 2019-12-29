@@ -1,6 +1,9 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <cmath>
@@ -27,6 +30,8 @@ string g_cfg_path;
 string g_device_type;
 string g_input;
 bool   g_compressed;
+
+string g_save_folder;
 
 // ostream &operator<<(ostream &out, const vector<size_t> &c)
 // {
@@ -143,6 +148,39 @@ void RosTopicFramesSource::image_compressed_callback(const sensor_msgs::Compress
     }
 }
 
+class ImageSaver
+{
+public:
+    ImageSaver(std::string &save_folder);
+
+    void save_image(cv::Mat &frame, std::string &filename);
+
+private:
+    std::string &save_folder_;
+    size_t      indexer_;
+
+};
+
+ImageSaver::ImageSaver(std::string &save_folder) :
+    save_folder_(save_folder),
+    indexer_(0)
+{
+    if ( !fs::exists(save_folder_) ) {
+        fs::create_directory(save_folder_);
+    }
+}
+
+void ImageSaver::save_image(cv::Mat &frame, std::string &filename)
+{
+    fs::path fpath = fs::path(save_folder_) / fs::path(filename);
+    string   fpath_str = fpath.string() + "_" + to_string(indexer_++) + ".png";
+
+    ROS_DEBUG_STREAM_ONCE(fpath_str);
+
+    cv::imwrite(fpath_str, frame);
+}
+
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "yolo_detector");
@@ -154,6 +192,7 @@ int main(int argc, char **argv)
     pr_nh.getParam("device", g_device_type);
     pr_nh.getParam("input", g_input);
     pr_nh.getParam("compressed", g_compressed);
+    pr_nh.getParam("save_folder", g_save_folder);
 
     shared_ptr<FramesSource> source;
 
@@ -169,6 +208,11 @@ int main(int argc, char **argv)
         source = make_shared<RosTopicFramesSource>(nh, g_input);
     }
 
+    shared_ptr<ImageSaver> image_saver;
+    if ( !g_save_folder.empty() ) {
+        image_saver = make_shared<ImageSaver>(g_save_folder);
+    }
+
     YOLO_OpenVINO yolo(g_cfg_path);
     yolo.init(g_ir_path, g_device_type);
 
@@ -179,6 +223,9 @@ int main(int argc, char **argv)
         cv::Mat input_image = source->get_frame();
         if ( input_image.empty() )
             break;
+
+        cv::Mat source_image;
+        input_image.copyTo(source_image);
 
         std::vector<DetectionObject> corrected_dets;
         yolo.infer(input_image, corrected_dets);
@@ -199,6 +246,11 @@ int main(int argc, char **argv)
         cv::imshow("Boxes", resized);
         if ( cv::waitKey(1) == 27 )
             break;
+
+        if ( image_saver && corrected_dets.size() > 0 ) {
+            std::string image_prefix = "saved";
+            image_saver->save_image(source_image, image_prefix);
+        }
     }
 
     return EXIT_SUCCESS;

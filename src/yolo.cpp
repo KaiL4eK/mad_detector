@@ -122,7 +122,7 @@ std::vector<cv::Point> CommonYOLO::get_anchors(size_t layer_idx)
     size_t start_idx = anchors_per_output * (mCfg._output_cnt - layer_idx - 1);
     size_t end_idx = anchors_per_output * (mCfg._output_cnt - layer_idx);
 
-    cout << start_idx << " / " << end_idx << endl;
+    // cout << start_idx << " / " << end_idx << endl;
 
     for ( size_t i = start_idx; i < end_idx; i++ )
     {

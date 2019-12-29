@@ -5,6 +5,7 @@
     <arg name="device" default="CPU" />
     <arg name="input" default="$(find mad_detector)/test.jpg" />
     <arg name="compressed" default="false" />
+    <arg name="save_folder" default="" />
 
     <node pkg="mad_detector" type="app" name="detector" output="screen" respawn="false">
         <param name="config_path" value="$(arg config_path)" />
@@ -12,5 +13,6 @@
         <param name="device" value="$(arg device)" />
         <param name="input" value="$(arg input)" />
         <param name="compressed" value="$(arg compressed)" />
+        <param name="save_folder" value="$(arg save_folder)" />
     </node>
 </launch>

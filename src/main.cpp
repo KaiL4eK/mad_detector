@@ -227,6 +227,8 @@ int main(int argc, char **argv)
         cv::Mat source_image;
         input_image.copyTo(source_image);
 
+        cv::blur(input_image, input_image, cv::Size(3, 3));
+
         std::vector<DetectionObject> corrected_dets;
         yolo.infer(input_image, corrected_dets);
 

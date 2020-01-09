@@ -6,8 +6,8 @@ mkdir -p models; cd models
 
 # BASE_MODEL="RF_model_YOLO_MbN/MbN2_416x416_t1"
 # BASE_MODEL="RF_model_YOLO_Tiny/Tiny3_416x416_t1"
-# BASE_MODEL="RF_model_YOLO_MbN/RF_MbN2_384x416_t1"
 # BASE_MODEL="RF_model_YOLO_MbN/RF2_MbN2_384x416_t1"
+# BASE_MODEL="RF_model_YOLO_MbN/RF_MbN2_384x416_t1"
 BASE_MODEL="RF_model_YOLO_Tiny/Tiny3_384x416_t1"
 
 FP16_MODEL="$BASE_MODEL"_FP16

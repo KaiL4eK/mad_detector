@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="filepath" />
+
+    <include file="$(find mad_detector)/launch/start.launch" >
+        <arg name="device" value="Myriad" />
+        <arg name="input" value="$(arg filepath)" />
+        <arg name="config_path" value="$(find mad_detector)/models/model.json" />
+        <arg name="ir_path" value="$(find mad_detector)/models/model.xml" />
+        <arg name="compressed" value="true" />
+        <arg name="save_folder" value="$(find mad_detector)/records" />
+        <!-- <arg name="config_path" value="$(find mad_detector)/models/MbN2_416x416_t1.json" /> -->
+        <!-- <arg name="ir_path" value="$(find mad_detector)/models/MbN2_416x416_t1_FP16.xml" /> -->
+    </include>
+</launch>

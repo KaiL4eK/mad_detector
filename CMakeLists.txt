@@ -6,6 +6,9 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   cv_bridge
   image_transport
+  std_msgs
+  geometry_msgs
+  message_generation
 )
 
 find_package(OpenCV 3.0 REQUIRED)
@@ -14,12 +17,27 @@ find_package(Boost 1.6.5 REQUIRED COMPONENTS program_options filesystem)
 set (CMAKE_CXX_STANDARD 14)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 
+add_message_files(
+  FILES
+  Detection.msg
+  Detections.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+)
+
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES mad_autonet
 #  CATKIN_DEPENDS roscpp rospy
 #  DEPENDS system_lib
+  CATKIN_DEPENDS message_runtime
 )
+
+## Application specific
 
 include_directories(
   include

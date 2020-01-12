@@ -22,8 +22,13 @@ using namespace std;
 #include "yolo_ov.hpp"
 
 #include <ros/ros.h>
+#include <mad_detector/Detection.h>
+#include <mad_detector/Detections.h>
+#include <geometry_msgs/Point.h>
+
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
+
 
 string g_ir_path;
 string g_cfg_path;
@@ -208,6 +213,8 @@ int main(int argc, char **argv)
         source = make_shared<RosTopicFramesSource>(nh, g_input);
     }
 
+    ros::Publisher pub = nh.advertise<mad_detector::Detections>("detections", 1000);
+
     shared_ptr<ImageSaver> image_saver;
     if ( !g_save_folder.empty() ) {
         image_saver = make_shared<ImageSaver>(g_save_folder);
@@ -220,6 +227,8 @@ int main(int argc, char **argv)
 
     while ( ros::ok() )
     {
+        mad_detector::Detections   output_dets;
+
         cv::Mat input_image = source->get_frame();
         if ( input_image.empty() )
             break;
@@ -240,11 +249,35 @@ int main(int argc, char **argv)
                 cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50,50,100), 1, CV_AA);
 
             // cout << "Detection: " << labels.at(det.cls_idx) << endl;
+
+            mad_detector::Detection topic_detection;
+            topic_detection.object_class = labels.at(det.cls_idx);
+            topic_detection.probability = det.conf;
+
+            geometry_msgs::Point size_px;
+            size_px.x = det.rect.width;
+            size_px.y = det.rect.height;
+
+            geometry_msgs::Point ul_point;
+            ul_point.x = det.rect.tl().x * 1. / input_image.cols;
+            ul_point.y = det.rect.tl().y * 1. / input_image.rows;
+
+            geometry_msgs::Point br_point;
+            br_point.x = det.rect.br().x * 1. / input_image.cols;
+            br_point.y = det.rect.br().y * 1. / input_image.rows;
+
+            topic_detection.ul_point = ul_point;
+            topic_detection.br_point = br_point;
+            topic_detection.size_px = size_px;
+
+            output_dets.detections.push_back(topic_detection);
         }
+
+        if ( !output_dets.detections.empty() )
+            pub.publish(output_dets);
 
         cv::Mat resized;
         cv::resize(input_image, resized, cv::Size(800, 600));
-
         cv::imshow("Boxes", resized);
         if ( cv::waitKey(1) == 27 )
             break;

@@ -79,8 +79,24 @@ class VideoFramesSource : public FramesSource
 
 class PictureFramesSource : public FramesSource
 {
+public:
+    PictureFramesSource(string &filepath);
 
+    cv::Mat get_frame();
 };
+
+PictureFramesSource::PictureFramesSource(std::string &filepath)
+{
+    frame_ = cv::imread(filepath);
+}
+
+cv::Mat PictureFramesSource::get_frame()
+{
+    cv::Mat new_frame;
+    frame_.copyTo(new_frame);
+
+    return new_frame;
+}
 
 class RosTopicFramesSource : public FramesSource
 {
@@ -206,7 +222,7 @@ int main(int argc, char **argv)
     } else if ( boost::ends_with(g_input, ".mp4") ) {
 
     } else if ( boost::ends_with(g_input, ".png") ) {
-
+        source = make_shared<PictureFramesSource>(g_input);
     } else if ( boost::ends_with(g_input, ".jpg") ) {
 
     } else {
@@ -253,6 +269,38 @@ int main(int argc, char **argv)
             mad_detector::Detection topic_detection;
             topic_detection.object_class = labels.at(det.cls_idx);
             topic_detection.probability = det.conf;
+
+            // cout << det.rect << endl;
+
+            if ( labels.at(det.cls_idx) == "traffic_light" )
+            {
+                cv::Mat tl_frame = source_image(det.rect);
+
+                // Recognition required
+                cv::Mat hsv_frame;
+
+                cv::Mat green_frame;
+                cv::Mat red_frame;
+                cvtColor(tl_frame, hsv_frame, cv::COLOR_BGR2HSV);
+
+                cv::inRange( hsv_frame,
+                                cv::Scalar(77, 60, 236),
+                                cv::Scalar(94, 207, 255),
+                                green_frame );
+
+                cv::inRange( hsv_frame,
+                                cv::Scalar(0, 0, 222),
+                                cv::Scalar(80, 50, 255),
+                                red_frame );
+
+                int count_red = cv::countNonZero(red_frame);
+                int count_green = cv::countNonZero(green_frame);
+
+                if ( count_red > count_green )
+                    topic_detection.object_class = "traffic_light_red";
+                else
+                    topic_detection.object_class = "traffic_light_green";
+            }
 
             geometry_msgs::Point size_px;
             size_px.x = det.rect.width;

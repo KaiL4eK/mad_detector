@@ -3,7 +3,7 @@
 using namespace std;
 
 #include <ext_list.hpp>
-namespace ie = InferenceEngine; 
+namespace ie = InferenceEngine;
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -46,7 +46,7 @@ void matU8ToBlob(const cv::Mat &orig_image, InferenceEngine::Blob::Ptr &blob, in
     }
 }
 
-YOLO_OpenVINO::YOLO_OpenVINO(std::string cfg_fpath) : 
+YOLO_OpenVINO::YOLO_OpenVINO(std::string cfg_fpath) :
     CommonYOLO(cfg_fpath)
 {
 }
@@ -83,6 +83,7 @@ bool YOLO_OpenVINO::init(std::string ir_fpath, std::string device_type)
 
     cout << "Loading to device" << endl;
     mExecutableNetwork = mIeCore.LoadNetwork(mNetwork, device_type);
+    cout << "Loaded!" << endl;
 
     for ( auto &info : mExecutableNetwork.GetOutputsInfo() )
         mOutputNames.push_back(info.first);
@@ -134,7 +135,7 @@ void YOLO_OpenVINO::infer(cv::Mat raw_image, vector<DetectionObject> &detections
             const ie::SizeVector &output_dims = output_blob->getTensorDesc().getDims();
 
             vector<cv::Point> anchors = get_anchors(i_layer);
-            
+
             const float grid_w = output_dims[3];
             const float grid_h = output_dims[2];
             const size_t chnl_count = output_dims[1];

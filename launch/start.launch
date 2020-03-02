@@ -2,10 +2,11 @@
 <launch>
     <arg name="config_path" default="$(find mad_detector)/models/MbN2_416x416_t1.json" />
     <arg name="ir_path" default="$(find mad_detector)/models/MbN2_416x416_t1_FP16.xml" />
-    <arg name="device" default="CPU" />
+    <arg name="device" default="CPU" doc="CPU or Myriad" />
     <arg name="input" default="$(find mad_detector)/test.jpg" />
     <arg name="compressed" default="false" />
     <arg name="save_folder" default="" />
+    <arg name="gui_enabled" default="false" />
 
     <node pkg="mad_detector" type="app" name="detector" output="screen" respawn="false">
         <param name="config_path" value="$(arg config_path)" />
@@ -14,5 +15,6 @@
         <param name="input" value="$(arg input)" />
         <param name="compressed" value="$(arg compressed)" />
         <param name="save_folder" value="$(arg save_folder)" />
+        <param name="gui_enabled" value="$(arg gui_enabled)" />
     </node>
 </launch>

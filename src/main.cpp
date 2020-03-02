@@ -5,6 +5,7 @@ namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <cmath>
 #include <iostream>
@@ -35,17 +36,12 @@ string g_cfg_path;
 string g_device_type;
 string g_input;
 bool   g_compressed;
+bool   g_gui_enabled;
 
 string g_save_folder;
 
-// ostream &operator<<(ostream &out, const vector<size_t> &c)
-// {
-//     out << "[";
-//     for (const size_t &s : c)
-//         out << s << ",";
-//     out << "]";
-//     return out;
-// }
+/********************************************************************/
+/********************************************************************/
 
 class FramesSource
 {
@@ -72,10 +68,37 @@ cv::Mat FramesSource::get_frame()
     return frame_;
 }
 
+/********************************************************************/
+/********************************************************************/
+
 class VideoFramesSource : public FramesSource
 {
+public:
+    VideoFramesSource(string &filepath);
 
+    cv::Mat get_frame();
+
+private:
+    cv::VideoCapture    cap_;
 };
+
+VideoFramesSource::VideoFramesSource(string &filepath)
+{
+    if ( !cap_.open(filepath) )
+    {
+        throw invalid_argument("Filepath is invalid (failed to open video): " + filepath);
+    }
+}
+
+cv::Mat VideoFramesSource::get_frame()
+{
+    cv::Mat frame;
+    cap_ >> frame;
+    return frame;
+}
+
+/********************************************************************/
+/********************************************************************/
 
 class PictureFramesSource : public FramesSource
 {
@@ -97,6 +120,9 @@ cv::Mat PictureFramesSource::get_frame()
 
     return new_frame;
 }
+
+/********************************************************************/
+/********************************************************************/
 
 class RosTopicFramesSource : public FramesSource
 {
@@ -169,31 +195,53 @@ void RosTopicFramesSource::image_compressed_callback(const sensor_msgs::Compress
     }
 }
 
+/********************************************************************/
+/********************************************************************/
+
+#include <ctime>
+
 class ImageSaver
 {
 public:
     ImageSaver(std::string &save_folder);
 
-    void save_image(cv::Mat &frame, std::string &filename);
+    void save_image(cv::Mat &frame, std::string filename);
+    std::string get_datetime();
 
 private:
-    std::string &save_folder_;
+    std::string dirpath_;
     size_t      indexer_;
 
 };
 
 ImageSaver::ImageSaver(std::string &save_folder) :
-    save_folder_(save_folder),
     indexer_(0)
 {
-    if ( !fs::exists(save_folder_) ) {
-        fs::create_directory(save_folder_);
+    fs::path path = fs::path(save_folder) / fs::path(get_datetime());
+
+    if ( !fs::exists(path) ) {
+        fs::create_directory(path);
     }
+
+    dirpath_ = path.string();
 }
 
-void ImageSaver::save_image(cv::Mat &frame, std::string &filename)
+string ImageSaver::get_datetime()
 {
-    fs::path fpath = fs::path(save_folder_) / fs::path(filename);
+    time_t rawtime;
+    struct tm * timeinfo;
+    char buffer[80];
+
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+
+    strftime(buffer,sizeof(buffer),"%d%m%Y_%H%M%S",timeinfo);
+    return string(buffer);
+}
+
+void ImageSaver::save_image(cv::Mat &frame, std::string filename)
+{
+    fs::path fpath = fs::path(dirpath_) / fs::path(filename);
     string   fpath_str = fpath.string() + "_" + to_string(indexer_++) + ".png";
 
     ROS_DEBUG_STREAM_ONCE(fpath_str);
@@ -201,6 +249,8 @@ void ImageSaver::save_image(cv::Mat &frame, std::string &filename)
     cv::imwrite(fpath_str, frame);
 }
 
+/********************************************************************/
+/********************************************************************/
 
 int main(int argc, char **argv)
 {
@@ -210,21 +260,28 @@ int main(int argc, char **argv)
 
     pr_nh.getParam("config_path", g_cfg_path);
     pr_nh.getParam("ir_path", g_ir_path);
-    pr_nh.getParam("device", g_device_type);
     pr_nh.getParam("input", g_input);
-    pr_nh.getParam("compressed", g_compressed);
-    pr_nh.getParam("save_folder", g_save_folder);
+    pr_nh.param<bool>("compressed", g_compressed, false);
+    pr_nh.param<bool>("gui_enabled", g_gui_enabled, false);
+    pr_nh.param<string>("device", g_device_type, "CPU");
+    pr_nh.param<string>("save_folder", g_save_folder, "");
 
     shared_ptr<FramesSource> source;
+    /* TODO - check working with Upper case in topics */
+    boost::algorithm::to_lower(g_input);
 
+    /* As device - same like video */
     if ( boost::starts_with(g_input, "/dev") ) {
-
+        source = make_shared<VideoFramesSource>(g_input);
+    /* As video */
     } else if ( boost::ends_with(g_input, ".mp4") ) {
-
+        source = make_shared<VideoFramesSource>(g_input);
+    /* As picture */
     } else if ( boost::ends_with(g_input, ".png") ) {
         source = make_shared<PictureFramesSource>(g_input);
     } else if ( boost::ends_with(g_input, ".jpg") ) {
-
+        source = make_shared<PictureFramesSource>(g_input);
+    /* As topic, at last =) */
     } else {
         source = make_shared<RosTopicFramesSource>(nh, g_input);
     }
@@ -272,6 +329,7 @@ int main(int argc, char **argv)
 
             // cout << det.rect << endl;
 
+            /* Main color detection logic */
             if ( labels.at(det.cls_idx) == "traffic_light" )
             {
                 cv::Mat tl_frame = source_image(det.rect);
@@ -324,15 +382,17 @@ int main(int argc, char **argv)
         if ( !output_dets.detections.empty() )
             pub.publish(output_dets);
 
-        cv::Mat resized;
-        cv::resize(input_image, resized, cv::Size(800, 600));
-        cv::imshow("Boxes", resized);
-        if ( cv::waitKey(1) == 27 )
-            break;
+        if ( g_gui_enabled ) {
+            cv::Mat resized;
+            cv::resize(input_image, resized, cv::Size(800, 600));
+            cv::imshow("Boxes", resized);
+            if ( cv::waitKey(1) == 27 )
+                break;
+        }
 
-        if ( image_saver && corrected_dets.size() > 0 ) {
-            std::string image_prefix = "saved";
-            image_saver->save_image(source_image, image_prefix);
+        if ( image_saver ) {
+            image_saver->save_image(source_image, "src");
+            image_saver->save_image(input_image, "det");
         }
     }
 

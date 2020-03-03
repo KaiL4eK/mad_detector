@@ -4,6 +4,8 @@
 
     <node pkg="rosbag" type="play" name="player" args="--clock $(arg filepath)" />
 
+    <!-- main_2019-03-22-09-35-36.bag - forward/forward-left/tl-red -->
+
     <include file="$(find mad_detector)/launch/start.launch" >
         <arg name="device" value="Myriad" />
         <arg name="input" value="/signs_camera/image_raw" />

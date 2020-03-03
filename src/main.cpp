@@ -312,88 +312,94 @@ int main(int argc, char **argv)
         cv::blur(input_image, input_image, cv::Size(3, 3));
 
         std::vector<DetectionObject> corrected_dets;
-        yolo.infer(input_image, corrected_dets);
 
-        for (DetectionObject &det : corrected_dets)
-        {
-            cv::rectangle(input_image, det.rect, cv::Scalar(250, 0, 0), 2);
+        try {
+            yolo.infer(input_image, corrected_dets);
 
-            cv::putText(input_image, labels.at(det.cls_idx), det.rect.tl(),
-                cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50,50,100), 1, CV_AA);
-
-            // cout << "Detection: " << labels.at(det.cls_idx) << endl;
-
-            mad_detector::Detection topic_detection;
-            topic_detection.object_class = labels.at(det.cls_idx);
-            topic_detection.probability = det.conf;
-
-            // cout << det.rect << endl;
-
-            /* Main color detection logic */
-            if ( labels.at(det.cls_idx) == "traffic_light" )
+            for (DetectionObject &det : corrected_dets)
             {
-                cv::Mat tl_frame = source_image(det.rect);
+                // cout << "Detection: " << labels.at(det.cls_idx) << endl;
 
-                // Recognition required
-                cv::Mat hsv_frame;
+                mad_detector::Detection topic_detection;
+                topic_detection.object_class = labels.at(det.cls_idx);
+                topic_detection.probability = det.conf;
 
-                cv::Mat green_frame;
-                cv::Mat red_frame;
-                cvtColor(tl_frame, hsv_frame, cv::COLOR_BGR2HSV);
+                // cout << det.rect << endl;
 
-                cv::inRange( hsv_frame,
-                                cv::Scalar(77, 60, 236),
-                                cv::Scalar(94, 207, 255),
-                                green_frame );
+                /* Main color detection logic */
+                if ( labels.at(det.cls_idx) == "traffic_light" )
+                {
+                    cv::Mat tl_frame = source_image(det.rect);
 
-                cv::inRange( hsv_frame,
-                                cv::Scalar(0, 0, 222),
-                                cv::Scalar(80, 50, 255),
-                                red_frame );
+                    // Recognition required
+                    cv::Mat hsv_frame;
 
-                int count_red = cv::countNonZero(red_frame);
-                int count_green = cv::countNonZero(green_frame);
+                    cv::Mat green_frame;
+                    cv::Mat red_frame;
+                    cvtColor(tl_frame, hsv_frame, cv::COLOR_BGR2HSV);
 
-                if ( count_red > count_green )
-                    topic_detection.object_class = "traffic_light_red";
-                else
-                    topic_detection.object_class = "traffic_light_green";
+                    cv::inRange( hsv_frame,
+                                    cv::Scalar(77, 60, 236),
+                                    cv::Scalar(94, 207, 255),
+                                    green_frame );
+
+                    cv::inRange( hsv_frame,
+                                    cv::Scalar(0, 0, 222),
+                                    cv::Scalar(80, 50, 255),
+                                    red_frame );
+
+                    int count_red = cv::countNonZero(red_frame);
+                    int count_green = cv::countNonZero(green_frame);
+
+                    if ( count_red > count_green )
+                        topic_detection.object_class = "traffic_light_red";
+                    else
+                        topic_detection.object_class = "traffic_light_green";
+                }
+
+                cv::rectangle(input_image, det.rect, cv::Scalar(250, 0, 0), 2);
+                cv::putText(input_image, topic_detection.object_class, det.rect.tl(),
+                    cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50,50,100), 1);
+
+                /* ROS message preparation */
+                geometry_msgs::Point size_px;
+                size_px.x = det.rect.width;
+                size_px.y = det.rect.height;
+
+                geometry_msgs::Point ul_point;
+                ul_point.x = det.rect.tl().x * 1. / input_image.cols;
+                ul_point.y = det.rect.tl().y * 1. / input_image.rows;
+
+                geometry_msgs::Point br_point;
+                br_point.x = det.rect.br().x * 1. / input_image.cols;
+                br_point.y = det.rect.br().y * 1. / input_image.rows;
+
+                topic_detection.ul_point = ul_point;
+                topic_detection.br_point = br_point;
+                topic_detection.size_px = size_px;
+
+                output_dets.detections.push_back(topic_detection);
             }
 
-            geometry_msgs::Point size_px;
-            size_px.x = det.rect.width;
-            size_px.y = det.rect.height;
+            if ( !output_dets.detections.empty() )
+                pub.publish(output_dets);
 
-            geometry_msgs::Point ul_point;
-            ul_point.x = det.rect.tl().x * 1. / input_image.cols;
-            ul_point.y = det.rect.tl().y * 1. / input_image.rows;
+            if ( g_gui_enabled ) {
+                cv::Mat resized;
+                cv::resize(input_image, resized, cv::Size(800, 600));
+                cv::imshow("Boxes", resized);
+                if ( cv::waitKey(1) == 27 )
+                    break;
+            }
 
-            geometry_msgs::Point br_point;
-            br_point.x = det.rect.br().x * 1. / input_image.cols;
-            br_point.y = det.rect.br().y * 1. / input_image.rows;
+            if ( image_saver ) {
+                // image_saver->save_image(source_image, "src");
+                image_saver->save_image(input_image, "det");
+            }
+        } catch (...) {
 
-            topic_detection.ul_point = ul_point;
-            topic_detection.br_point = br_point;
-            topic_detection.size_px = size_px;
-
-            output_dets.detections.push_back(topic_detection);
         }
 
-        if ( !output_dets.detections.empty() )
-            pub.publish(output_dets);
-
-        if ( g_gui_enabled ) {
-            cv::Mat resized;
-            cv::resize(input_image, resized, cv::Size(800, 600));
-            cv::imshow("Boxes", resized);
-            if ( cv::waitKey(1) == 27 )
-                break;
-        }
-
-        if ( image_saver ) {
-            image_saver->save_image(source_image, "src");
-            image_saver->save_image(input_image, "det");
-        }
     }
 
     return EXIT_SUCCESS;

@@ -19,7 +19,7 @@ struct YOLOConfig
     cv::Size                _infer_sz;
 
     float                   _objectness_thresh;
-    float                   _iou_threshold;
+    float                   _nms_threshold;
 
     std::vector<std::string> _output_names;
     std::vector<std::string> _input_names;

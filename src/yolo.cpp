@@ -110,8 +110,8 @@ YOLOConfig::YOLOConfig(string cfg_path)
     cout << "Readed tiles count: " << _tile_cnt << endl;
 
     /* TODO - disable hardlink */
-    _objectness_thresh = 0.5;
-    _iou_threshold = 0.5;
+    _objectness_thresh = 0.8;
+    _nms_threshold = 0.4;
 }
 
 std::vector<cv::Point> CommonYOLO::get_anchors(size_t layer_idx)
@@ -250,7 +250,7 @@ void CommonYOLO::filterBoxes(std::vector<RawDetectionObject> &raw_boxes,
         for (size_t j = i + 1; j < raw_boxes.size(); ++j)
         {
             if (/* det.cls_idx == raw_boxes[j].cls_idx && */
-                IntersectionOverUnion(det, raw_boxes[j]) >= mCfg._iou_threshold)
+                IntersectionOverUnion(det, raw_boxes[j]) >= mCfg._nms_threshold)
             {
                 raw_boxes[j].conf = 0;
             }

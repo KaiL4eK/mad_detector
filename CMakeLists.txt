@@ -11,7 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
 )
 
-find_package(OpenCV 3.4 REQUIRED)
+find_package(OpenCV REQUIRED)
 find_package(Boost 1.6.5 REQUIRED COMPONENTS program_options filesystem)
 
 set (CMAKE_CXX_STANDARD 14)

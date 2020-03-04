@@ -95,7 +95,7 @@ bool YOLO_OpenVINO::init(std::string ir_fpath, std::string device_type)
     }
 }
 
-void YOLO_OpenVINO::infer(cv::Mat raw_image, vector<DetectionObject> &detections)
+void YOLO_OpenVINO::infer(cv::Mat raw_image, vector<DetectionObject> &detections, bool debug)
 {
     chrono::time_point<chrono::steady_clock> inf_start_time = chrono::steady_clock::now();
 
@@ -152,6 +152,8 @@ void YOLO_OpenVINO::infer(cv::Mat raw_image, vector<DetectionObject> &detections
     filterBoxes(global_dets, detections);
 
     chrono::duration<double> inf_elapsed = chrono::steady_clock::now() - inf_start_time;
-    cout << "Inference time: " << chrono::duration_cast<chrono::milliseconds>(inf_elapsed).count() << " [ms]" << endl;
+
+    if ( debug )
+        cout << "Inference time: " << chrono::duration_cast<chrono::milliseconds>(inf_elapsed).count() << " [ms]" << endl;
 
 }

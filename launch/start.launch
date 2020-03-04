@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="config_path" default="$(find mad_detector)/models/MbN2_416x416_t1.json" />
-    <arg name="ir_path" default="$(find mad_detector)/models/MbN2_416x416_t1_FP16.xml" />
+    <arg name="config_path" default="$(find mad_detector)/models/model.json" />
+    <arg name="ir_path" default="$(find mad_detector)/models/model.xml" />
     <arg name="device" default="CPU" doc="CPU or Myriad" />
     <arg name="input" default="$(find mad_detector)/test.jpg" />
     <arg name="compressed" default="false" />

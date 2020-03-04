@@ -74,5 +74,17 @@ target_link_libraries(${OPENVINO_APP}
     ${YOLO_LIB}
     ${catkin_LIBRARIES}
 )
-
 add_dependencies(${OPENVINO_APP} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+set(DIRECTORY_PREDICT_APP dir_predict)
+add_executable(${DIRECTORY_PREDICT_APP}
+    src/main_dir_predict.cpp
+    src/yolo_ov.cpp
+)
+target_link_libraries(${DIRECTORY_PREDICT_APP}
+    ${InferenceEngine_LIBRARIES}
+    IE::ie_cpu_extension
+    ${YOLO_LIB}
+    ${catkin_LIBRARIES}
+)
+add_dependencies(${DIRECTORY_PREDICT_APP} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

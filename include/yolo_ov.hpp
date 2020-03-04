@@ -6,11 +6,11 @@
 class YOLO_OpenVINO : public CommonYOLO
 {
 public:
-    YOLO_OpenVINO(std::string cfg_fpath);    
+    YOLO_OpenVINO(std::string cfg_fpath);
 
     bool init(std::string ir_fpath, std::string device_type);
 
-    void infer(cv::Mat raw_image, std::vector<DetectionObject> &detections) override;
+    void infer(cv::Mat raw_image, std::vector<DetectionObject> &detections, bool debug = false) override;
 
 private:
     InferenceEngine::Core                mIeCore;

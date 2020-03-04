@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="dirpath" />
+
+    <arg name="config_path" default="$(find mad_detector)/models/model.json" />
+    <arg name="ir_path" default="$(find mad_detector)/models/model.xml" />
+    <arg name="device" default="Myriad" doc="CPU or Myriad" />
+
+    <node pkg="mad_detector" type="dir_predict" name="detector" output="screen" respawn="false">
+        <param name="config_path" value="$(arg config_path)" />
+        <param name="ir_path" value="$(arg ir_path)" />
+        <param name="device" value="$(arg device)" />
+        <param name="dirpath" value="$(arg dirpath)" />
+    </node>
+</launch>

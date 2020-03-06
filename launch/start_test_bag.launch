@@ -14,6 +14,7 @@
         <arg name="ir_path" value="$(find mad_detector)/models/model.xml" />
         <arg name="compressed" value="true" />
         <arg name="save_folder" value="$(find mad_detector)/records" />
+        <arg name="save_folder" value="" />
         <arg name="gui_enabled" value="true" />
     </include>
 </launch>

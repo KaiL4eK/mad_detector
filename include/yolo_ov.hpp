@@ -10,7 +10,7 @@ public:
 
     bool init(std::string ir_fpath, std::string device_type);
 
-    void infer(cv::Mat raw_image, std::vector<DetectionObject> &detections, bool debug = false) override;
+    void infer(cv::Mat raw_image, std::vector<DetectionObject> &detections, bool debug = false);
 
 private:
     InferenceEngine::Core                mIeCore;

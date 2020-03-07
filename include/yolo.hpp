@@ -94,7 +94,7 @@ public:
     std::vector<cv::Point> get_anchors(size_t layer_idx);
     std::vector<std::string> get_labels();
 
-    virtual void infer(cv::Mat raw_image, std::vector<DetectionObject> &detections) = 0;
+    void infer(cv::Mat raw_image, std::vector<DetectionObject> &detections) {};
 
     enum ParsingFormat
     {

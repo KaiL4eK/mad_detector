@@ -36,7 +36,8 @@ string g_cfg_path;
 string g_device_type;
 string g_input;
 bool   g_compressed;
-bool   g_gui_enabled;
+bool   g_debug_image_enabled;
+int    g_target_rate;
 
 string g_save_folder;
 
@@ -252,6 +253,34 @@ void ImageSaver::save_image(cv::Mat &frame, std::string filename)
 /********************************************************************/
 /********************************************************************/
 
+class ROSImagePublisher
+{
+public:
+    ROSImagePublisher(ros::NodeHandle &nh, std::string topic_name);
+    void send_rgb(cv::Mat &frame);
+
+private:
+    image_transport::Publisher      pub_;
+    image_transport::ImageTransport it_;
+};
+
+
+ROSImagePublisher::ROSImagePublisher(ros::NodeHandle &nh, std::string topic_name) :
+    it_(nh)
+{
+    pub_ = it_.advertise(topic_name, 1);
+}
+
+
+void ROSImagePublisher::send_rgb(cv::Mat &frame)
+{
+    sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", frame).toImageMsg();
+    pub_.publish(msg);
+}
+
+/********************************************************************/
+/********************************************************************/
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "yolo_detector");
@@ -261,8 +290,9 @@ int main(int argc, char **argv)
     pr_nh.getParam("config_path", g_cfg_path);
     pr_nh.getParam("ir_path", g_ir_path);
     pr_nh.getParam("input", g_input);
+    pr_nh.param<int>("processing_rate", g_target_rate, 0);
     pr_nh.param<bool>("compressed", g_compressed, false);
-    pr_nh.param<bool>("gui_enabled", g_gui_enabled, false);
+    pr_nh.param<bool>("debug_image_enabled", g_debug_image_enabled, false);
     pr_nh.param<string>("device", g_device_type, "CPU");
     pr_nh.param<string>("save_folder", g_save_folder, "");
 
@@ -288,6 +318,8 @@ int main(int argc, char **argv)
 
     ros::Publisher pub = nh.advertise<mad_detector::Detections>("detections", 1000);
 
+    ROSImagePublisher debug_image_pub(nh, "debug_detections_image");
+
     shared_ptr<ImageSaver> image_saver;
     if ( !g_save_folder.empty() ) {
         image_saver = make_shared<ImageSaver>(g_save_folder);
@@ -297,6 +329,11 @@ int main(int argc, char **argv)
     yolo.init(g_ir_path, g_device_type);
 
     vector<string> labels = yolo.get_labels();
+
+    if ( g_target_rate <= 0 )
+        g_target_rate = 30;
+
+    ros::Rate loop_rate(g_target_rate);
 
     while ( ros::ok() )
     {
@@ -357,9 +394,12 @@ int main(int argc, char **argv)
                         topic_detection.object_class = "traffic_light_green";
                 }
 
-                cv::rectangle(input_image, det.rect, cv::Scalar(250, 0, 0), 2);
-                cv::putText(input_image, topic_detection.object_class, det.rect.tl(),
-                    cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50,50,100), 1);
+                if ( g_debug_image_enabled )
+                {
+                    cv::rectangle(input_image, det.rect, cv::Scalar(250, 0, 0), 2);
+                    cv::putText(input_image, topic_detection.object_class, det.rect.tl(),
+                        cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(50,50,100), 1);
+                }
 
                 /* ROS message preparation */
                 geometry_msgs::Point size_px;
@@ -367,12 +407,12 @@ int main(int argc, char **argv)
                 size_px.y = det.rect.height;
 
                 geometry_msgs::Point ul_point;
-                ul_point.x = det.rect.tl().x * 1. / input_image.cols;
-                ul_point.y = det.rect.tl().y * 1. / input_image.rows;
+                ul_point.x = det.rect.tl().x * 1. / source_image.cols;
+                ul_point.y = det.rect.tl().y * 1. / source_image.rows;
 
                 geometry_msgs::Point br_point;
-                br_point.x = det.rect.br().x * 1. / input_image.cols;
-                br_point.y = det.rect.br().y * 1. / input_image.rows;
+                br_point.x = det.rect.br().x * 1. / source_image.cols;
+                br_point.y = det.rect.br().y * 1. / source_image.rows;
 
                 topic_detection.ul_point = ul_point;
                 topic_detection.br_point = br_point;
@@ -384,22 +424,19 @@ int main(int argc, char **argv)
             if ( !output_dets.detections.empty() )
                 pub.publish(output_dets);
 
-            if ( g_gui_enabled ) {
-                cv::Mat resized;
-                cv::resize(input_image, resized, cv::Size(800, 600));
-                cv::imshow("Boxes", resized);
-                if ( cv::waitKey(1) == 27 )
-                    break;
+            if ( g_debug_image_enabled ) {
+                debug_image_pub.send_rgb(input_image);
             }
 
             if ( image_saver ) {
-                // image_saver->save_image(source_image, "src");
+                image_saver->save_image(source_image, "src");
                 image_saver->save_image(input_image, "det");
             }
         } catch (...) {
 
         }
 
+        loop_rate.sleep();
     }
 
     return EXIT_SUCCESS;

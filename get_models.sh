@@ -9,8 +9,9 @@ mkdir -p models; cd models
 # BASE_MODEL="RF_model_YOLO_MbN/RF2_MbN2_384x416_t1"
 # BASE_MODEL="RF_model_YOLO_MbN/RF_MbN2_384x416_t1"
 # BASE_MODEL="RF_model_YOLO_Tiny/Tiny3_384x416_t1"
-# BASE_MODEL="RF_model_YOLO_MbN_new/RF_MbN2_384x416_t1"
-BASE_MODEL="RF_model_YOLO_Tiny_new/Tiny3_256x320_t1"
+# BASE_MODEL="RF_model_YOLO_MbN_new/RF_MbN2_256x320_t1"
+# BASE_MODEL="RF_model_YOLO_Tiny_new/Tiny3_256x320_t1"
+BASE_MODEL="RF_model_YOLO_Tiny_new_v2/Tiny3_256x320_t1"
 
 FP16_MODEL="$BASE_MODEL"_FP16
 FP32_MODEL="$BASE_MODEL"_FP32

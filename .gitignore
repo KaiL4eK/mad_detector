@@ -1,2 +1,5 @@
 build
 models
+samples/predicted
+.vscode
+records

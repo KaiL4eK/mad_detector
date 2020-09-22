@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="model_path" default="$(find mad_detector)/models/Yolov4Tiny_mad_model.pth" />
+    <!-- Should be directory with images -->
+    <arg name="input" default="$(find mad_detector)/samples" />
+
+    <node pkg="mad_detector" type="detector.py" name="detector" output="screen" respawn="false">
+        <param name="model_path" value="$(arg model_path)" />
+        <param name="input" value="$(arg input)" />
+    </node>
+</launch>

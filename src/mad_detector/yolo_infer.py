@@ -103,7 +103,7 @@ def nms_diou(preds, nms_thresh=0.5):
 
 
 def load_infer_from_file(model_path, device, nms_threshold=0.4, conf_threshold=0.6, use_half_precision=False):
-    loaded_data = torch.load(model_path)
+    loaded_data = torch.load(model_path, map_location=device)
     model_config = loaded_data['model_config']
     model_state = loaded_data['model_state']
     

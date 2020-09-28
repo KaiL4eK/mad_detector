@@ -3,3 +3,4 @@ models
 samples/predicted
 .vscode
 records
+*.pyc

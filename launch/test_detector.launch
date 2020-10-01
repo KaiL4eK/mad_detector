@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="model_path" default="$(find mad_detector)/models/Yolov4Tiny_mad_model.pth" />
+    <!-- <arg name="model_path" default="$(find mad_detector)/models/Yolov4Tiny_mad_model.pth" /> -->
+    <arg name="model_path" default="$(find mad_detector)/models/Yolov4Tiny_epoch_3000_ap_1.0_full.pth" />
     <!-- Should be directory with images -->
     <arg name="input" default="$(find mad_detector)/samples" />
 

@@ -39,7 +39,7 @@ if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/models")
   )
 
   execute_process(
-    COMMAND wget https://github.com/KaiL4eK/mad_detector/releases/download/v0.0/Yolov4Tiny_mad_model.pth -O models/Yolov4Tiny_mad_model.pth
+    COMMAND wget -q https://github.com/KaiL4eK/mad_detector/releases/download/v0.0/Yolov4Tiny_mad_model.pth -O models/Yolov4Tiny_mad_model.pth
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   )
 endif()

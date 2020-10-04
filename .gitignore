@@ -1,5 +1,5 @@
 build
-#models
+models
 samples/predicted
 .vscode
 records

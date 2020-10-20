@@ -22,7 +22,7 @@ class RFSignsDetector(object):
         # Must be RGB image!
         bboxes, labels, scores = self.infer.infer_image(image)
         
-        label_names = [self.labels[int(labels)] for lbl_idx in labels]
+        label_names = [self.labels[int(lbl_idx)] for lbl_idx in labels]
         
         return bboxes, label_names, scores
         

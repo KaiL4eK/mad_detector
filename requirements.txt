@@ -1,2 +1,2 @@
 torch==1.4.0
-git+https://github.com/KaiL4eK/nn9dets@4c1eee4faf0e386b1433b62621437f727351382b
+git+https://github.com/KaiL4eK/nn9dets@7a07b5e3465cfa28bac124b36ec0aad260d3afe7

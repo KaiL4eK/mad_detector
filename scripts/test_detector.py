@@ -1,47 +1,57 @@
-#!/usr/bin/env python
-
-import torch
 import os
 import cv2
-from mad_detector.yolo_infer import load_infer_from_file
+import torch
 
+from nn9dets.utils.image import get_images_from_directory
+from nn9dets.infer import load_infer_from_file
+
+
+def get_args():
+    import argparse
+    parser = argparse.ArgumentParser(description='Test script for detector')
+    parser.add_argument('-m', action="store", dest="model", required=True)
+    parser.add_argument('-i', action="store", dest="input", required=True)
+
+    args = parser.parse_args()
+    return vars(args)   # As dictionary
+
+
+def init_ros():
+    import rospy
+    rospy.init_node('test_node')
+    # Get args 
+    args = {
+        'model': rospy.get_param('~model_path'),
+        'input': rospy.get_param('~input')
+    }
+    
 
 class RFSignsDetector(object):
     def __init__(self, model_path):
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
         
         self.infer = load_infer_from_file(
             model_path=model_path,
-            device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
+            device=torch.device(device),
             conf_threshold=0.6,
             nms_threshold=0.3,
             # use_half_precision=True,  # use it only for GPU device!
         )
-        self.labels = self.infer.get_labels()
+        self.label_names = self.infer.get_labels()
     
     def find_signs(self, image):
         # Must be RGB image!
         bboxes, labels, scores = self.infer.infer_image(image)
         
-        label_names = [self.labels[int(lbl_idx)] for lbl_idx in labels]
+        label_names = [self.label_names[int(lbl_idx)] for lbl_idx in labels]
         
         return bboxes, label_names, scores
-        
-
-def get_images_from_directory(dirpath):
-    fpaths = [os.path.join(dirpath, fname) 
-                for fname in os.listdir(dirpath) 
-                    if fname.split('.')[-1].lower() in ['png', 'jpg', 'jpeg']]
-
-    return fpaths
-
-        
-if __name__ == '__main__':
-    import rospy
-    rospy.init_node('test_node')
     
-    # Get args 
-    model_path = rospy.get_param('~model_path')
-    input_path = rospy.get_param('~input')
+
+if __name__ == '__main__':
+    args = get_args()
+    input_path = args['input']
+    model_path = args['model']
     
     RESULT_DIRECTORY = os.path.join(input_path, 'predicted')
     
@@ -55,6 +65,8 @@ if __name__ == '__main__':
     im_fpaths = get_images_from_directory(input_path)
     
     for im_fpath in im_fpaths:
+        print(f'Processing file: {im_fpath}')
+        
         img = cv2.imread(im_fpath)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         

@@ -1,0 +1,4 @@
+torch==1.4.0
+# git+https://github.com/KaiL4eK/nn9dets@dfb4276acc050437e3db0f9c8b5c369c5026bef2
+pytorch_lightning==1.0.8
+mlflow==1.12.1

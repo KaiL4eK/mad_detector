@@ -1,0 +1,111 @@
+
+metrics_logger:
+  type: pytorch_lightning.loggers.MLFlowLogger
+  experiment_name: RF20_signs_tl
+  tracking_uri: http://127.0.0.1:5000
+
+model:
+  name: Yolov4Tiny
+  strides: [16, 32]
+  anchors: [8,9, 16,20, 22,44, 28,29, 39,42, 55,60]
+  anchor_masks: [[0, 1, 2], [3, 4, 5]]
+
+  infer_sz_hw: [192, 256]
+  channels: 3
+  labels: [
+    "forward",
+    "left",
+    "right",
+    "brick",
+    "forward_left",
+    "forward_right",
+    "traffic_light",
+  ]
+
+  fill_value: [127, 127, 127]
+  tiled: False
+
+
+train:
+  # pretrained: best/Yolov4Tiny_epoch_3000_ap_1.0_full.pth
+  skip_eval: 10
+
+  batch: 32
+  subdivisions: 1
+  lr: 3e-4
+  epochs: 3000
+
+  optimizer:
+    type: torch.optim.Adam
+
+  scheduler:
+    type: torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
+    T_0: 200
+    T_mult: 2
+
+
+  # Loss
+  # iou_loss_threshold: 0.5
+  bbox_loss:
+    ciou_ratio: 1
+    gt_match_max_ratio: 4
+    
+    bbox_rate: 0.05
+    cls_rate: 1.0
+    obj_rate: 1.0
+
+  # Checkpoints
+  checkpoints_dir: checkpoints
+  checkpoints_suffix: full
+  keep_checkpoint_max: 10
+
+  # Artifacts
+  artifacts_dir: artifacts
+
+  # For torch.DataLoader
+  num_workers: 12
+  pin_memory: True
+
+
+dataset:
+  augmentation:
+    min_visibility: 0.1
+    min_area_px: 25
+
+  config:
+    max_targets: 60
+    show_stats: True
+
+  train:
+    - type: cvat
+      root_dirpath: data/RF19
+      img_sdirpath: Images
+      ann_sfpath: annotations.xml
+      # TODO - add renaming feature
+    - type: cvat
+      root_dirpath: data/RF17
+      img_sdirpath: Images
+      ann_sfpath: annotations.xml
+    - type: cvat
+      root_dirpath: data/RF_sim_1
+      img_sdirpath: Images
+      ann_sfpath: annotations.xml
+
+    - type: cvat
+      root_dirpath: data/RF19_test
+      img_sdirpath: Images
+      ann_sfpath: annotations.xml
+    - type: cvat
+      root_dirpath: data/RF20_test
+      img_sdirpath: Images
+      ann_sfpath: annotations.xml
+
+  valid:
+    - type: cvat
+      root_dirpath: data/RF19_test
+      img_sdirpath: Images
+      ann_sfpath: annotations.xml
+    - type: cvat
+      root_dirpath: data/RF20_test
+      img_sdirpath: Images
+      ann_sfpath: annotations.xml

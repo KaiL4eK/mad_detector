@@ -1,8 +1,11 @@
 
 metrics_logger:
-  type: pytorch_lightning.loggers.MLFlowLogger
+  type: dcvt.loggers.MlFLowMinioLogger
   experiment_name: RF20_signs_tl
   tracking_uri: http://127.0.0.1:5000
+  mlflow_uri: http://127.0.0.1:9000
+  secret_access_key: exp_afefc
+  access_key: exp_afef1231
 
 model:
   name: Yolov4Tiny

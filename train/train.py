@@ -14,12 +14,10 @@ import os
 import logging
 import time
 
-from pytorch_lightning import loggers as pl_loggers
-
 from dcvt.datasets.detection import get_datasets_from_config
 from dcvt.utils.evaluation import calculate_map
 from dcvt.utils.losses import YoloBboxLoss
-from dcvt.utils.common import read_config, set_determenistic, object_from_dict
+from dcvt.utils.common import read_config, set_determenistic, object_from_dict, write_temp_yml
 from dcvt.utils.torch import initialize_weights, get_lr
 from dcvt.infer import InferDetection
 from dcvt.detection.evaluate import evaluate
@@ -55,7 +53,6 @@ def train(config, et_logger=None):
 
     train_dataset = ConcatDataset(train_datasets)
     val_dataset = ConcatDataset(val_datasets)
-
     n_train = len(train_dataset)
     n_val = len(val_dataset)
 
@@ -103,18 +100,6 @@ def train(config, et_logger=None):
 
     train_model.to(device)
 
-    # learning rate setup
-    def burnin_schedule(i):
-        if i < config.burn_in:
-            factor = pow(i / config.burn_in, 4)
-        elif i < config.steps[0]:
-            factor = 1.0
-        elif i < config.steps[1]:
-            factor = 0.1
-        else:
-            factor = 0.01
-        return factor
-
     optimizer = object_from_dict(
         d=train_config.optimizer,
         params=train_model.parameters(),
@@ -148,6 +133,11 @@ def train(config, et_logger=None):
     ARTIFACTS_CACHE_DIR = train_config.artifacts_dir
     os.makedirs(ARTIFACTS_CACHE_DIR, exist_ok=True)
     
+    ## Log config file
+    et_logger.log_artifact(
+        local_path=write_temp_yml(config.to_dict())
+    )
+
     try:
         if et_logger is not None:
             params = {
@@ -296,7 +286,6 @@ def train(config, et_logger=None):
             )
             logger.info(f'Checkpoint {epoch + 1} saved !')
             
-        
             ## LOG ARTIFACTS
             best_map_model_name = f'{model_config.name}_best_mAP.pth'
             best_map_model_path = os.path.join(
@@ -308,21 +297,20 @@ def train(config, et_logger=None):
                 best_map_model_path,
                 _use_new_zipfile_serialization=False
             )                
-            et_logger.experiment.log_artifacts(
-                run_id = et_logger.run_id,
-                local_dir=best_map_model_path
+            et_logger.log_artifact(
+                local_path=best_map_model_path
             )
-            
                 
             # Best model checkpoints
             if best_model_value < (map50 * 2 + map75):
+                best_model_value = map50 * 2 + map75
+
                 if best_model_name is not None:
                     try:
                         os.remove(best_model_name)
                     except:
                         pass
                 
-                best_model_value = map50 * 2 + map75
                 best_model_name = f'{model_config.name}_best_ep{epoch + 1}_ap_{ap_value}_{checkpoint_suffix}.pth'
                 best_model_name = os.path.join(
                     train_config.checkpoints_dir, 
@@ -333,8 +321,6 @@ def train(config, et_logger=None):
                     best_model_name,
                     _use_new_zipfile_serialization=False
                 )
-                
-
             
             # Cleaning
             saved_models.append(save_path)
@@ -375,8 +361,6 @@ def init_logger(log_file=None, log_dir=None, log_level=logging.INFO, mode='w', s
 
 
 if __name__ == "__main__":
-    import pytorch_lightning as pl
-    
     logger = init_logger()
     args = get_args()
     config = read_config(args['config'])

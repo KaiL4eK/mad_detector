@@ -1,16 +1,15 @@
-
 metrics_logger:
-  type: dcvt.loggers.MlFLowMinioLogger
-  experiment_name: RF20_signs_tl
-  tracking_uri: http://127.0.0.1:5000
-  mlflow_uri: http://127.0.0.1:9000
-  secret_access_key: exp_afefc
-  access_key: exp_afef1231
+  type: dcvt.common.utils.tracking.MlFLowMinioLogger
+  # experiment_name: human_segmentation
+
+experiment_name: rf_signs_detection
 
 model:
-  name: Yolov4Tiny
+  # Better use definite names, not paths like other objects - better backward compatibility
+  type: Yolo4Tiny
+
   strides: [16, 32]
-  anchors: [8,9, 16,20, 22,44, 28,29, 39,42, 55,60]
+  anchors: [4,5, 11,16, 24,27, 30,38, 44,47, 58,63]
   anchor_masks: [[0, 1, 2], [3, 4, 5]]
 
   infer_sz_hw: [192, 256]
@@ -25,13 +24,18 @@ model:
     "traffic_light",
   ]
 
-  fill_value: [127, 127, 127]
-  tiled: False
-
+  # Loss
+  bbox_loss:
+    ciou_ratio: 1
+    gt_match_max_ratio: 4
+    
+    bbox_rate: 0.05
+    cls_rate: 0.58
+    obj_rate: 1.0
 
 train:
-  # pretrained: best/Yolov4Tiny_epoch_3000_ap_1.0_full.pth
-  skip_eval: 10
+  # pretrained: face_detection_last.pth
+  skip_eval_epochs: 5
 
   batch: 32
   subdivisions: 1
@@ -46,37 +50,30 @@ train:
     T_0: 200
     T_mult: 2
 
-
-  # Loss
-  # iou_loss_threshold: 0.5
-  bbox_loss:
-    ciou_ratio: 1
-    gt_match_max_ratio: 4
-    
-    bbox_rate: 0.05
-    cls_rate: 1.0
-    obj_rate: 1.0
-
-  # Checkpoints
-  checkpoints_dir: checkpoints
-  checkpoints_suffix: full
-  keep_checkpoint_max: 10
-
   # Artifacts
   artifacts_dir: artifacts
 
   # For torch.DataLoader
-  num_workers: 12
+  num_workers: -1
   pin_memory: True
 
+  augmentation:
+    type: src.transform.AlbuAugmentation
+    fill_value: 127
+    min_area_px: 25
+    min_visibility: 0.1
+
+  data:
+    max_targets: 30
+    scale_div: 255
+  
+  checkpoints_metrics:
+    - name: "eval/map50"
+    - name: "eval/map75"
 
 dataset:
-  augmentation:
-    min_visibility: 0.1
-    min_area_px: 25
-
+  # Root configuration - applied to all
   config:
-    max_targets: 60
     show_stats: True
 
   train:
@@ -84,11 +81,12 @@ dataset:
       root_dirpath: data/RF19
       img_sdirpath: Images
       ann_sfpath: annotations.xml
-      # TODO - add renaming feature
+
     - type: cvat
       root_dirpath: data/RF17
       img_sdirpath: Images
       ann_sfpath: annotations.xml
+
     - type: cvat
       root_dirpath: data/RF_sim_1
       img_sdirpath: Images
@@ -98,6 +96,7 @@ dataset:
       root_dirpath: data/RF19_test
       img_sdirpath: Images
       ann_sfpath: annotations.xml
+
     - type: cvat
       root_dirpath: data/RF20_test
       img_sdirpath: Images
@@ -108,7 +107,9 @@ dataset:
       root_dirpath: data/RF19_test
       img_sdirpath: Images
       ann_sfpath: annotations.xml
+      
     - type: cvat
       root_dirpath: data/RF20_test
       img_sdirpath: Images
       ann_sfpath: annotations.xml
+

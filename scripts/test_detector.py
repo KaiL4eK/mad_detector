@@ -2,8 +2,8 @@ import os
 import cv2
 import torch
 
-from nn9dets.utils.image import get_images_from_directory
-from nn9dets.infer import load_infer_from_file
+from dcvt.utils.image import get_images_from_directory
+from dcvt.detection.infer import load_infer_from_file
 
 
 def get_args():

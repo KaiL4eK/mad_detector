@@ -2,8 +2,8 @@ import os
 import cv2
 import torch
 
-from dcvt.utils.image import get_images_from_directory
-from dcvt.detection.infer import load_infer_from_file
+from dcvt.common.utils.fs import get_images_from_directory
+from dcvt.detection.infer import InferDetection
 
 
 def get_args():
@@ -28,12 +28,10 @@ def init_ros():
 
 class RFSignsDetector(object):
     def __init__(self, model_path):
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
         
-        self.infer = load_infer_from_file(
-            model_path=model_path,
-            device=torch.device(device),
-            conf_threshold=0.6,
+        self.infer = InferDetection.from_file(
+            model_filepath=model_path,
+            conf_threshold=0.5,
             nms_threshold=0.3,
             # use_half_precision=True,  # use it only for GPU device!
         )
@@ -41,11 +39,9 @@ class RFSignsDetector(object):
     
     def find_signs(self, image):
         # Must be RGB image!
-        bboxes, labels, scores = self.infer.infer_image(image)
-        
-        label_names = [self.label_names[int(lbl_idx)] for lbl_idx in labels]
-        
-        return bboxes, label_names, scores
+        bboxes, label_ids, scores = self.infer.infer_image(image)
+        labels = self.infer.map_labels(label_ids)
+        return bboxes, labels, scores
     
 
 if __name__ == '__main__':

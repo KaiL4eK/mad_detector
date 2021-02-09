@@ -1,6 +1,8 @@
-build
-models
-samples/predicted
-.vscode
-records
+/build
+/models
+/samples/predicted
+/.vscode
+/records
 *.pyc
+
+/venv*

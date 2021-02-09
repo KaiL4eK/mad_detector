@@ -32,14 +32,14 @@ catkin_package(
   CATKIN_DEPENDS message_runtime
 )
 
-if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/models")
-  execute_process(
-    COMMAND mkdir models
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  )
+# if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/models")
+#   execute_process(
+#     COMMAND mkdir models
+#     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#   )
 
-  execute_process(
-    COMMAND wget -q https://github.com/KaiL4eK/mad_detector/releases/download/v0.0/Yolov4Tiny_mad_model.pth -O models/Yolov4Tiny_mad_model.pth
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  )
-endif()
+#   execute_process(
+#     COMMAND wget -q https://github.com/KaiL4eK/mad_detector/releases/download/v0.0/Yolov4Tiny_mad_model.pth -O models/Yolov4Tiny_mad_model.pth
+#     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#   )
+# endif()
